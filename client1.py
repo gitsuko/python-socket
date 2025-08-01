@@ -1,4 +1,6 @@
 import socket as so
+import threading as th
+from queue import Queue
 
 try:
     print("trying connection to server...")
@@ -6,35 +8,60 @@ try:
 
     address = ("127.0.0.1", 9000)
     conn.connect(address)
+    conn.settimeout(1.0)
 
     conn.setblocking(True)
     
     print("connected to server.")
 
-    def send_msg(msg):
-        conn.send(msg.encode())
+    def send_msg(q):
+        msg = input()
 
-        return msg
+        if msg.strip() != "":
+            conn.send(msg.encode())
+            print(f"message sent successfuly - {msg}")
+        else:
+            msg == "..."
+
+        q.put(msg)
     
     def recv_msg():
         try:
-            conn.settimeout(2.0)
             msg = conn.recv(1024)
-
-            print(f"client 2 said - {msg.decode()}")
+            if msg:
+                if msg.decode() != "!":
+                    print(f"client 2 said - {msg.decode()}")
+            else:
+                print("exiting...")
+                exit(0)
+            
             return msg.decode()
         
         except so.timeout:
-            print("server timeout, no msg available.")
+            pass
 
-    print("enter to send or enter 1 to recv.")
+    print("== enter text to send message or 'exit' for exiting ==")
     while True:
-        user = input()
 
-        if user == '1':
+        q = Queue()
+
+        send_thread = th.Thread(target=send_msg, args=(q,))
+        send_thread.start()
+
+        while send_thread.is_alive():
+            
             msg = recv_msg()
-        else:
-            msg = send_msg(user)
+
+            if msg == "exit":
+                print("exiting...")
+                exit(0)
+                break
+
+
+        send_thread.join()
+
+        msg = q.get()
+        
 
         if msg == "exit":
             break

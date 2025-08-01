@@ -2,7 +2,7 @@ import socket as so
 import threading as th
 from queue import Queue
 
-try:
+try: # creating a connection for clients with timeout
     print("server waiting for connection...")
     conn = so.socket(so.AF_INET, so.SOCK_STREAM)
 
@@ -22,6 +22,7 @@ try:
     client1.settimeout(1.0)
     client2.settimeout(1.0)
 
+    # message receive functions for adding to threads
     def client1_recv(q1):
         try:
             data_1 = client1.recv(1024)
@@ -40,7 +41,7 @@ try:
         except so.timeout:
             q2.put("")
 
-
+    # Main Code
     while True:
         
         q1 = Queue()
@@ -64,7 +65,7 @@ try:
             if msg_1.strip() != "":
                 client2.send(msg_1.encode())
                 print(f"client 1 - {msg_1}")
-
+                    
             if msg_1 == "exit":
                 break
 
@@ -72,10 +73,14 @@ try:
             if msg_2.strip() != "":
                 client1.send(msg_2.encode())
                 print(f"client 2 - {msg_2}")
-
+            
             if msg_2 == "exit":
                 break
         
+        # sending clients a message as a broadcast
+        # to help them receive messages in their scripts
+        client1.send("!".encode())
+        client2.send("!".encode())
 
     try:
         client1.close()
