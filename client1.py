@@ -1,9 +1,13 @@
 import socket as so
 import threading as th
 from queue import Queue
+import logging as lo
+
+format = "%(asctime)s - %(levelname)s - %(message)s"
+lo.basicConfig(format=format, level=lo.INFO, datefmt="%H:%M:%S")
 
 try:
-    print("trying connection to server...")
+    lo.info("Trying connection to server...")
     conn = so.socket(so.AF_INET, so.SOCK_STREAM)
 
     address = ("127.0.0.1", 9000)
@@ -12,14 +16,17 @@ try:
 
     conn.setblocking(True)
     
-    print("connected to server.")
+    addr = conn.getpeername()[0]
+    port = conn.getpeername()[1]
+
+    lo.info(f"Connected to server {addr}:{port}")
 
     def send_msg(q):
         msg = input()
 
         if msg.strip() != "":
             conn.send(msg.encode())
-            print(f"message sent successfuly - {msg}")
+            lo.info(f"You sent: {msg}")
         else:
             msg == "..."
 
@@ -30,17 +37,17 @@ try:
             msg = conn.recv(1024)
             if msg:
                 if msg.decode() != "!":
-                    print(f"client 2 said - {msg.decode()}")
+                    lo.info(f"Client #2 sent: {msg.decode()}")
             else:
-                print("exiting...")
-                exit(0)
+                lo.info("Exiting...")
+                exit(1)
             
             return msg.decode()
         
         except so.timeout:
             pass
 
-    print("== enter text to send message or 'exit' for exiting ==")
+    print("NOTE: \"enter text to send message or 'exit' for exiting\"")
     while True:
 
         q = Queue()
@@ -53,29 +60,29 @@ try:
             msg = recv_msg()
 
             if msg == "exit":
-                print("exiting...")
+                lo.info("Exiting...")
                 exit(0)
                 break
-
 
         send_thread.join()
 
         msg = q.get()
-        
 
         if msg == "exit":
             break
 
     try:
         conn.close()
-    except: ...
+    except Exception as e:
+        lo.warning(f"Failed to close server: {e}")
 
-    print("closing connection...")
+    lo.info("closing connection")
 
 except Exception as e:
 
     try:
         conn.close()
-    except: ...
+    except Exception as e:
+        lo.warning(f"Failed to close server: {e}")
 
-    print(f"connection failed - {e}")
+    lo.error(f"Connection failed - {e}")

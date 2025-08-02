@@ -1,10 +1,19 @@
 import socket as so
 import threading as th
 from queue import Queue
+import logging as lo
+
+format = "%(asctime)s - %(levelname)s - %(message)s"
+lo.basicConfig(format=format, level=lo.INFO, datefmt="%H:%M:%S")
 
 try: # creating a connection for clients with timeout
-    print("server waiting for connection...")
+    lo.info("Server started. Waiting for connections...")
     conn = so.socket(so.AF_INET, so.SOCK_STREAM)
+
+    # Allow the server to reuse the same address after the program exits.
+    # This prevents the "Address already in use" error caused by the OS holding
+    # the socket in TIME_WAIT state after a recent close.
+    conn.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
 
     address = ("127.0.0.1", 9000)
     conn.bind(address)
@@ -13,11 +22,16 @@ try: # creating a connection for clients with timeout
     conn.setblocking(True)
 
     client1, addr = conn.accept()
-    print("client1 connected.")
+    client1_addr = client1.getpeername()[0]
+    client1_port = client1.getpeername()[1]
+    
+    lo.info(f"Client #1 connected from {client1_addr}:{client1_port}")
 
     client2, addr = conn.accept()
-    print("client2 connected.")
+    client2_addr = client2.getpeername()[0]
+    client2_port = client2.getpeername()[1]
 
+    lo.info(f"Client #2 connected from {client2_addr}:{client2_port}")
 
     client1.settimeout(1.0)
     client2.settimeout(1.0)
@@ -42,8 +56,10 @@ try: # creating a connection for clients with timeout
             q2.put("")
 
     # Main Code
+    lo.info("Waiting for messages...")
+    
     while True:
-        
+
         q1 = Queue()
         q2 = Queue()
 
@@ -60,11 +76,10 @@ try: # creating a connection for clients with timeout
         msg_1 = q1.get()
         msg_2 = q2.get()
 
-
         if msg_1 != None:
             if msg_1.strip() != "":
                 client2.send(msg_1.encode())
-                print(f"client 1 - {msg_1}")
+                lo.info(f"Client #1 sent: {msg_1}")
                     
             if msg_1 == "exit":
                 break
@@ -72,7 +87,7 @@ try: # creating a connection for clients with timeout
         if  msg_2 != None:
             if msg_2.strip() != "":
                 client1.send(msg_2.encode())
-                print(f"client 2 - {msg_2}")
+                lo.info(f"Client #2 sent: {msg_2}")
             
             if msg_2 == "exit":
                 break
@@ -84,24 +99,33 @@ try: # creating a connection for clients with timeout
 
     try:
         client1.close()
+    except Exception as e:
+        lo.warning(f"Failed to close client #1: {e}")
+    try:
         client2.close()
+    except Exception as e:
+        lo.warning(f"Failed to close client #2: {e}")
+    try:
         conn.close()
-    except:
-        pass
+    except Exception as e: 
+        lo.warning(f"Failed to close server: {e}")
+    
+    lo.info("Connection closed.")
 
-    print("connected closed.")
-        
 
 except Exception as e:
 
     try:
         client1.close()
-    except: ...
+    except Exception as e:
+        lo.warning(f"Failed to close client #1: {e}")
     try:
         client2.close()
-    except: ...
+    except Exception as e:
+        lo.warning(f"Failed to close client #2: {e}")
     try:
         conn.close()
-    except: ...
+    except Exception as e: 
+        lo.warning(f"Failed to close server: {e}")
 
-    print(f"connection failed - {e}")
+    lo.error(f"Connection failed: {e}")
