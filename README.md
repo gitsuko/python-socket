@@ -1,5 +1,5 @@
-# simple-python-socket
-This is a command-line socket program written in Python.
+# python-socket app
+A command-line socket program written in Python.
 
 ## Features
 
