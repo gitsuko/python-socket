@@ -2,12 +2,12 @@ import socket as so
 import threading as th
 from queue import Queue
 import logging as lo
+from get_ip import get_host_ip
 
 format = "%(asctime)s - %(levelname)s - %(message)s"
 lo.basicConfig(format=format, level=lo.INFO, datefmt="%H:%M:%S")
 
 try: # creating a connection for clients with timeout
-    lo.info("Server started. Waiting for connections...")
     conn = so.socket(so.AF_INET, so.SOCK_STREAM)
 
     # Allow the server to reuse the same address after the program exits.
@@ -15,7 +15,10 @@ try: # creating a connection for clients with timeout
     # the socket in TIME_WAIT state after a recent close.
     conn.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
 
-    address = ("127.0.0.1", 9000)
+    IP_ADDRESS = get_host_ip()
+    address = (IP_ADDRESS, 9000)
+    lo.info(f"Server started on {IP_ADDRESS}:{9000}. Waiting for connections...")
+
     conn.bind(address)
 
     conn.listen(2)

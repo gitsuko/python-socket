@@ -6,11 +6,13 @@ import logging as lo
 format = "%(asctime)s - %(levelname)s - %(message)s"
 lo.basicConfig(format=format, level=lo.INFO, datefmt="%H:%M:%S")
 
+IP_ADDRESS = input("Enter IP address to connect: ")
+
 try:
     lo.info("Trying connection to server...")
     conn = so.socket(so.AF_INET, so.SOCK_STREAM)
 
-    address = ("127.0.0.1", 9000)
+    address = (IP_ADDRESS, 9000)
     conn.connect(address)
     conn.settimeout(1.0)
 
@@ -60,9 +62,8 @@ try:
             msg = recv_msg()
 
             if msg == "exit":
-                lo.info("Exiting...")
+                print("Enter a key to exit.")
                 exit(0)
-                break
 
         send_thread.join()
 
