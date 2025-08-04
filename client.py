@@ -28,7 +28,7 @@ try:
 
         if msg.strip() != "":
             conn.send(msg.encode())
-            lo.info(f"You sent: {msg}")
+
         else:
             msg == "..."
 
@@ -39,12 +39,9 @@ try:
             msg = conn.recv(1024)
             if msg:
                 if msg.decode() != "!":
-                    lo.info(f"Client #2 sent: {msg.decode()}")
+                    lo.info(msg.decode())
             else:
-                lo.info("Exiting...")
-                exit(1)
-            
-            return msg.decode()
+                return
         
         except so.timeout:
             pass
@@ -59,11 +56,7 @@ try:
 
         while send_thread.is_alive():
             
-            msg = recv_msg()
-
-            if msg == "exit":
-                print("Enter a key to exit.")
-                exit(0)
+            recv_msg()
 
         send_thread.join()
 
