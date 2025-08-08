@@ -86,8 +86,9 @@ try: # creating a connection for clients
                     if data.strip() != "":
                         if data != None:    
 
-                            if data.decode() == "exit":
+                            if data.decode() == "client_exit_server":
                                 target_id = client_id
+                                target_addr = client_addr
                                 content = client_addr + " - sent: " + data.decode()
                                 lo.info(content)
                             else:
@@ -108,6 +109,8 @@ try: # creating a connection for clients
                 client_exit_thread = th.Thread(target=client_exit, args=(target_id,))
                 client_exit_thread.start()
                 client_exit_thread.join()
+
+                client_send(msg=f"{target_addr} exited the server.")
         
         except RuntimeError:
             lo.error("RuntimeError occured in client receive function.")
