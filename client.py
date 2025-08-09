@@ -37,10 +37,12 @@ try:
                         text_box.config(state=tk.NORMAL)
                         text_box.insert(tk.END, f"{data}\n", tk.RIGHT)
                         text_box.config(state=tk.DISABLED)
+                        text_box.see(tk.END)
                     else:
                         text_box.config(state=tk.NORMAL)
                         text_box.insert(tk.END, f"{data}\n")
                         text_box.config(state=tk.DISABLED)
+                        text_box.see(tk.END)
             except so.timeout:
                 continue
             except Exception as e:
@@ -110,7 +112,6 @@ try:
     text_box = tk.Text(window, width=60, height=20, font=20)
     text_box.config(state=tk.DISABLED)
     text_box.pack(padx=10, pady=10)
-    text_box.see(tk.END)
 
     entry = tk.Entry(window, width=60)
     entry.pack()
