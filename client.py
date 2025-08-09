@@ -1,9 +1,9 @@
-import socket as so
+from datetime import datetime as dt
 import threading as th
-from queue import Queue
-import logging as lo
-import sys
 from time import sleep
+import logging as lo
+import socket as so
+import sys
 try:
     import tkinter as tk
 except ModuleNotFoundError:
@@ -74,6 +74,24 @@ try:
             pass
         window.destroy()
 
+    def get_uptime():
+        """
+        Calculate and prints the clinet up time on window
+        """
+        while True:
+            time_stop = dt.now()
+            total = time_stop - time_start
+
+            total_seconds = int(total.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            formatted_time = f"{hours:02}:{minutes:02}:{seconds:02}" # No milliseconds printed
+
+            client_upTime.config(text=f"Up time: {formatted_time}")
+            sleep(1) # update every second
+    
+    time_start = dt.now()
+    
     # ============== SOCKET SETUP ==============
     conn = so.socket(so.AF_INET, so.SOCK_STREAM)
     address = (IP_ADDRESS, 9000)
@@ -99,14 +117,23 @@ try:
     # Bind the Return keyword to submit
     entry.bind("<Return>", lambda event: send_message())
 
-    send_button = tk.Button(window, text="Send", command=send_message)
+    lower_frame = tk.Frame(window, bg="skyblue")
+    lower_frame.pack(pady=15)
+
+    send_button = tk.Button(lower_frame, text="Send", command=send_message)
     send_button.config(fg="white", bg="grey")
-    send_button.pack(pady=(0, 10))
+    send_button.pack(pady=(0, 10), side=tk.RIGHT)
+
+    client_upTime = tk.Label(lower_frame, text="Up time: ", bg="skyblue")
+    client_upTime.pack(side=tk.RIGHT, padx=(0, 70))
 
     window.protocol("WM_DELETE_WINDOW", on_closing)
 
+    # ============== THREADING SETUP ==============
     recv_thread = th.Thread(target=recv_message, daemon=True)
+    uptime_thread = th.Thread(target=get_uptime, daemon=True)
     recv_thread.start()
+    uptime_thread.start()
 
     window.mainloop()
 
