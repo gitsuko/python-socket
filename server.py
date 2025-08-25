@@ -1,24 +1,34 @@
-import socket as so
-import threading as th
-from queue import Queue
-import logging as lo
+import socket
+import threading
+import logging
 from get_ip import get_host_ip
 
 format = "%(asctime)s - %(levelname)s - %(message)s"
-lo.basicConfig(format=format, level=lo.INFO, datefmt="%H:%M:%S")
+
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+
+fileHandler = logging.FileHandler("server_logs.txt")
+fileHandler.setFormatter(logging.Formatter(format, datefmt="%H:%M:%S"))
+
+consoleHanlder = logging.StreamHandler()
+consoleHanlder.setFormatter(logging.Formatter(format, datefmt="%H:%M:%S"))
+
+root.addHandler(fileHandler)
+root.addHandler(consoleHanlder)
 
 try: # creating a connection for clients
-    conn = so.socket(so.AF_INET, so.SOCK_STREAM)
+    conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     """
     Allow the server to reuse the same address after the program exits.
     This prevents the "Address already in use" error caused by the OS holding
     the socket in TIME_WAIT state after a recent close."""
-    conn.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
+    conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     IP_ADDRESS = get_host_ip()
     address = (IP_ADDRESS, 9000)
-    lo.info(f"Server started on {IP_ADDRESS}:{9000}.")
+    root.info(f"Server started on {IP_ADDRESS}:{9000}.")
 
     conn.bind(address)
 
@@ -29,7 +39,7 @@ try: # creating a connection for clients
     clients_database = {} # define a database for clients
     next_id = 1
 
-    def add_client_database(client_socket: so.socket ,address: str, port: int):
+    def add_client_database(client_socket: socket.socket ,address: str, port: int):
         """
         Adds a new connected client with address and port to the database.
 
@@ -58,16 +68,16 @@ try: # creating a connection for clients
             client.settimeout(1.0)
             client_addr, client_port = addr
 
-            lo.info(f"New client connected from {client_addr}:{client_port}")
+            root.info(f"New client connected from {client_addr}:{client_port}")
 
-            database_thread = th.Thread(target=add_client_database, args=(client, client_addr, client_port))
+            database_thread = threading.Thread(target=add_client_database, args=(client, client_addr, client_port))
             database_thread.start()
             database_thread.join()
 
-        except so.timeout:
+        except socket.timeout:
             pass # in case no one joined the server
         except Exception as e:
-            lo.error(f"Error occured while accepting a connection: {e}")
+            root.error(f"Error occured while accepting a connection: {e}")
 
     def client_receive():
         """
@@ -90,30 +100,30 @@ try: # creating a connection for clients
                                 target_id = client_id
                                 target_addr = client_addr
                                 content = client_addr + " - sent: " + data.decode()
-                                lo.info(content)
+                                root.info(content)
                             else:
                                 content = client_addr + " - sent: " + data.decode()
-                                lo.info(content)
+                                root.info(content)
 
                                 client_send(msg=content)
 
                     else:
                         pass # if received data is None
-                except so.timeout:
+                except socket.timeout:
                     pass
                 except Exception as e:
-                    lo.error(f"Error occured in client_receive function: {e}")
+                    root.error(f"Error occured in client_receive function: {e}")
             
             if target_id.strip() != "":
 
-                client_exit_thread = th.Thread(target=client_exit, args=(target_id,))
+                client_exit_thread = threading.Thread(target=client_exit, args=(target_id,))
                 client_exit_thread.start()
                 client_exit_thread.join()
 
                 client_send(msg=f"{target_addr} exited the server.")
         
         except RuntimeError:
-            lo.error("RuntimeError occured in client receive function.")
+            root.error("RuntimeError occured in client receive function.")
 
     def client_send(msg: str):
         """
@@ -129,7 +139,7 @@ try: # creating a connection for clients
             try:
                 client_socket.send(msg.encode())
             except Exception as e:
-                lo.error(f"error in slient_send function: {e}")
+                root.error(f"error in slient_send function: {e}")
 
     def broadcast():
         """
@@ -152,17 +162,17 @@ try: # creating a connection for clients
             try:
                 client_info["socket"].close()
             except Exception as e:
-                lo.warning(f"Failed to close client socket: {e}")
+                root.warning(f"Failed to close client socket: {e}")
             del clients_database[target_id]
 
 
     # ================ Main Code ================
-    lo.info("Waiting for messages... (Ctrl+C to close the connection)")
+    root.info("Waiting for messages... (Ctrl+C to close the connection)")
 
     while True:
         
         if len(clients_database) > 0: # if client exist
-            thread = th.Thread(target=client_receive)
+            thread = threading.Thread(target=client_receive)
             thread.start()
 
             while thread.is_alive(): # if there are no incoming massages, check for new connections
@@ -175,20 +185,20 @@ try: # creating a connection for clients
 
 
 except KeyboardInterrupt:
-    lo.info("Ctrl+C pressed")
+    root.info("Ctrl+C pressed")
 
     try:
         for client_id, client_info in list(clients_database.items()):
             client_socket = client_info["socket"]
             client_socket.close()
     except Exception as  e:
-        lo.warning(f"Failed to close client: {e}")
+        root.warning(f"Failed to close client: {e}")
     try:
         conn.close()
     except Exception as e: 
-        lo.warning(f"Failed to close server: {e}")
+        root.warning(f"Failed to close server: {e}")
 
-    lo.info("Connection closed.")
+    root.info("Connection closed.")
 
 except Exception as e:
 
@@ -197,10 +207,10 @@ except Exception as e:
             client_socket = client_info["socket"]
             client_socket.close()
     except Exception as  e:
-        lo.warning(f"Failed to close client: {e}")
+        root.warning(f"Failed to close client: {e}")
     try:
         conn.close()
     except Exception as e: 
-        lo.warning(f"Failed to close server: {e}")
+        root.warning(f"Failed to close server: {e}")
 
-    lo.error(f"Connection failed: {e}")
+    root.error(f"Connection failed: {e}")
